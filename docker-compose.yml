@@ -1,0 +1,40 @@
+# Two services on one private network. Run:  docker compose up --build -d
+services:
+  db:
+    image: postgres:16-alpine            # official image, arm64 + amd64
+    container_name: ba_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      RO_DB_USER: ${RO_DB_USER}           # read by 02_readonly_role.sh
+      RO_DB_PASSWORD: ${RO_DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data                     # named volume: data survives restarts
+      - ./database/init:/docker-entrypoint-initdb.d:ro      # schema + role, run on FIRST start only
+    ports:
+      - "${DB_HOST_PORT:-5433}:5432"      # host 5433 -> container 5432 (avoids clashing with a local Postgres)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  app:
+    build: .
+    container_name: ba_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy        # wait until PostgreSQL is ready, not just started
+    env_file: .env
+    environment:
+      DB_HOST: db                         # service name = hostname on the Compose network
+      DB_PORT: 5432
+    ports:
+      - "${APP_PORT:-8501}:8501"
+
+volumes:
+  pgdata:

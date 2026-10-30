@@ -1,0 +1,13 @@
+# Exact versions that were tested together
+streamlit==1.66.1
+plotly==7.1.0
+pandas==3.0.5
+SQLAlchemy==2.1.6
+psycopg[binary]==3.3.6
+sqlglot==30.26.0
+pydantic==2.13.5
+langgraph==1.2.18
+langchain-core==1.7.3
+langchain-anthropic==1.7.7
+langchain-openai==1.7.3
+pytest==9.1.1
